@@ -35,6 +35,7 @@ function open(index=null){
   if(busy)return;
   editing=index;const item=index===null?{}:state[tab][index];$('#fields').replaceChildren();$('#dialog-title').textContent=(index===null?'Criar ':'Editar ')+labels[tab];
   if(tab==='sectors'){
+    field('page','Página oficial',item.page||'',null,'url',false);
     field('name','Nome',item.name);field('short','Nome no menu',item.short);const slug=field('slug','Endereço (letras minúsculas e hífens)',item.slug);slug.pattern='[a-z][a-z0-9-]{0,79}';field('color','Cor principal',item.color||'#1943c9',null,'color');field('pale','Cor de fundo',item.pale||'#edf2ff',null,'color');
   }else if(tab==='units'){
     if(!state.sectors.length){message('Crie um setor antes de cadastrar unidades.',true);return;}field('name','Nome da unidade',item.name);field('sector','Setor',item.sector||state.sectors[0].name,state.sectors.map(s=>s.name));

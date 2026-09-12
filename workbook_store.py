@@ -8,6 +8,7 @@ import unicodedata
 import zipfile
 from datetime import datetime, timedelta
 from pathlib import Path
+from urllib.parse import urlsplit
 from xml.etree import ElementTree as ET
 
 S = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'
@@ -15,7 +16,7 @@ R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
 P = 'http://schemas.openxmlformats.org/package/2006/relationships'
 C = 'http://schemas.openxmlformats.org/package/2006/content-types'
 FIELDS = ['Nome', 'Siape', 'Setor', 'Unidade', 'Cargo', 'Nascimento', 'Ramal', 'WhatsApp', 'Foto', 'ID', 'Formação']
-SECTOR_HEADERS = {'Endereço': 'slug', 'Nome': 'name', 'Nome no menu': 'short', 'Cor': 'color', 'Fundo': 'pale'}
+SECTOR_HEADERS = {'Endereço': 'slug', 'Nome': 'name', 'Nome no menu': 'short', 'Cor': 'color', 'Fundo': 'pale', 'Página': 'page'}
 UNIT_HEADERS = {'ID': 'id', 'Setor': 'sector', 'Unidade': 'name'}
 
 
@@ -125,6 +126,7 @@ def load(path, defaults, photo_path):
     units = [{UNIT_HEADERS.get(k, k): v.strip() for k, v in u.items()} for u in units]
     for sector in sectors:
         sector.setdefault('name', '')
+        sector.setdefault('page', '')
         sector['slug'] = sector.get('slug') or slugify(sector['name'])
         sector['short'] = sector.get('short') or sector['name']
         sector['color'] = sector.get('color') or '#1943c9'
@@ -152,6 +154,12 @@ def validate(data, root):
                 item[key] = item[key].strip()
                 if any(ord(c) < 32 for c in item[key]):
                     raise ValueError('Caracteres inválidos em '+key)
+            if kind == 'sectors':
+                page = item.setdefault('page', '')
+                if not isinstance(page, str) or len(page) > 2000 or any(c.isspace() for c in page):
+                    raise ValueError('Página oficial inválida.')
+                if page and (urlsplit(page).scheme not in {'http', 'https'} or not urlsplit(page).hostname):
+                    raise ValueError('Página oficial deve ser um link http:// ou https://.')
     def unique(values, label):
         if len(values) != len(set(values)):
             raise ValueError(label+' repetido.')
@@ -202,7 +210,7 @@ def write(source, target, data):
         mapping = SECTOR_HEADERS if name == 'EditorSetores' else UNIT_HEADERS if name == 'EditorUnidades' else None
         if mapping:
             headers = list(mapping)
-            rows = [{label: row[key] for label, key in mapping.items()} for row in rows]
+            rows = [{label: row.get(key, '') for label, key in mapping.items()} for row in rows]
         if name not in paths:
             number = max(int(s.get('sheetId')) for s in sheets)+1
             rid = 'rEditor'+uuid.uuid4().hex

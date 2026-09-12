@@ -155,10 +155,12 @@ def build(data=None, output=None):
         members = [p for p in people if p['Setor'] == name]
         units = [u['name'] for u in data['units'] if u['sector'] == name]
         units.sort(key=lambda u: (0 if u in {'Diretoria', 'Coordenadoria'} else 1, u.casefold()))
-        tiles.append(f'''<a class="dept-tile" style="--accent:{color};--pale:{pale}" href="./{slug}/index.html">
+        page = data['sectors'][index - 1].get('page', '')
+        official_link = f'<a class="official-link" href="{esc(page)}" target="_blank" rel="noopener noreferrer" aria-label="Página oficial de {esc(name)}">PÁGINA OFICIAL</a>' if page else ''
+        tiles.append(f'''<article class="dept-tile" style="--accent:{color};--pale:{pale}">
         <div class="tile-top"><span>SETOR {index:02}</span><span class="tile-arrow" aria-hidden="true">↗</span></div>
-        <h2>{esc(name)}</h2><p>{len(units)} {'unidade' if len(units) == 1 else 'unidades'}</p>
-        <div class="tile-bottom"><span>{len(members)} servidores</span><strong>Conhecer equipe →</strong></div></a>''')
+        <h2><a class="sector-link" href="./{slug}/index.html">{esc(name)}</a></h2>{official_link}<p>{len(units)} {'unidade' if len(units) == 1 else 'unidades'}</p>
+        <div class="tile-bottom"><span>{len(members)} servidores</span><strong>Conhecer equipe →</strong></div></article>''')
         jumps = ''.join(f'<a href="#unidade-{i}">{esc(unit)}</a>' for i, unit in enumerate(units, 1))
         sections = []
         for i, unit in enumerate(units, 1):
