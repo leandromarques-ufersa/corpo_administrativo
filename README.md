@@ -49,6 +49,22 @@ O projeto funciona na raiz ou em uma subpasta de um site estático. Para publica
 envie `index.html`, `favicon.svg`, `css`, `photos` e as cinco pastas de setores.
 A planilha e o gerador são usados apenas para produzir os HTML localmente.
 
+### GitHub Pages
+
+O workflow `.github/workflows/deploy-pages.yml` publica os HTML já gerados,
+os arquivos CSS, o favicon e as fotos a cada push na branch `main`.
+Antes de enviar alterações na planilha, execute `python -X utf8 build.py`
+e inclua os HTML atualizados no commit.
+
+1. Em **Settings → Pages → Build and deployment → Source**, selecione
+   **GitHub Actions**.
+2. Envie o workflow para a branch `main`.
+3. Acompanhe **Actions → Publicar site no GitHub Pages**. Também é possível
+   iniciar uma publicação manualmente pelo botão **Run workflow**.
+4. Após o job `deploy` terminar, o endereço aparece no ambiente `github-pages`.
+
+Endereço esperado: https://leandromarques-ufersa.github.io/corpo_administrativo/
+
 Esta pasta não foi adicionada ao workflow dos docentes; a publicação atual
 dos docentes continua usando apenas `dist`. Não há consulta ao SIGAA nem
 agendamento neste projeto administrativo.
