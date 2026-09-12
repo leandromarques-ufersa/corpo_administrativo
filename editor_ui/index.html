@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Editar Página · UFERSA Angicos</title><link rel="stylesheet" href="/editor.css"><script src="/editor.js" defer></script></head>
+<body><header><div><small>UFERSA · CAMPUS ANGICOS</small><h1>Editar Página</h1></div><a href="/index.html" target="_blank" rel="noopener">Visualizar site ↗</a></header>
+<main><p id="message" role="status" aria-live="polite"></p>
+<section id="login"><h2>Acesso ao editor local</h2><p>Entre para atualizar os setores, unidades e servidores.</p><form id="login-form"><label>Usuário<input name="username" type="email" autocomplete="username" required></label><label>Senha<input name="password" type="password" autocomplete="current-password" required></label><button>Entrar</button></form></section>
+<section id="workspace" hidden><div class="toolbar"><div><h2>Cadastro administrativo</h2><p id="save-status">Nenhuma alteração pendente.</p></div><div><button id="save">Salvar na planilha</button> <button id="logout" class="secondary">Sair</button></div></div>
+<p>Ao salvar, a planilha e as páginas locais são atualizadas. Para atualizar o site público, envie as alterações ao GitHub.</p>
+<nav aria-label="Cadastros"><button data-tab="people" aria-pressed="true">Servidores</button><button data-tab="units" aria-pressed="false">Unidades</button><button data-tab="sectors" aria-pressed="false">Setores</button></nav>
+<div class="toolbar"><label class="search">Buscar<input id="search" type="search" placeholder="Nome, setor ou unidade"></label><button id="add">Novo servidor</button></div><div id="list"></div></section>
+</main><dialog id="dialog"><form id="record-form"><h2 id="dialog-title"></h2><div id="fields" class="fields"></div><div class="buttons"><button type="button" id="cancel" class="secondary">Cancelar</button><button>Aplicar alteração</button></div></form></dialog>
+</body></html>

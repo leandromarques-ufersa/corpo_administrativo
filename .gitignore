@@ -1,0 +1,7 @@
+.editor-secrets.json
+.editor-backups/
+.editor-tmp*/
+__pycache__/
+*.pyc
+_site/
+

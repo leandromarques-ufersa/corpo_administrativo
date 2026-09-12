@@ -51,10 +51,47 @@ A planilha e o gerador são usados apenas para produzir os HTML localmente.
 
 ### GitHub Pages
 
-O workflow `.github/workflows/deploy-pages.yml` publica os HTML já gerados,
-os arquivos CSS, o favicon e as fotos a cada push na branch `main`.
-Antes de enviar alterações na planilha, execute `python -X utf8 build.py`
-e inclua os HTML atualizados no commit.
+O workflow `.github/workflows/deploy-pages.yml` gera as páginas a partir da
+planilha e publica os HTML, CSS, favicon e fotos a cada push na branch `main`.
+Novos setores são incluídos automaticamente. Credenciais, backups, planilha e
+código do editor não entram no pacote público do Pages.
+
+### Editor local
+
+Execute com Python 3.10 ou superior, sem instalar dependências:
+
+```powershell
+python -X utf8 editor.py
+```
+
+Mantenha o terminal aberto e acesse http://127.0.0.1:8002/editor, ou use
+**Editar Página** no rodapé da página principal. O link abre o editor na
+máquina de quem clica e só funciona quando esse servidor local está em execução.
+
+As credenciais desta máquina estão em `.editor-secrets.json`, ignorado pelo
+Git; a senha fica como hash PBKDF2, não como texto puro. Em outra máquina,
+ou para trocar o acesso, execute `python configurar_editor.py`.
+
+- Use as abas **Servidores**, **Unidades** e **Setores** para criar, editar e
+  excluir registros. Em um servidor, selecione setor e unidade para transferi-lo.
+- Renomear um setor ou mover/renomear uma unidade atualiza seus servidores.
+  Para excluir uma unidade ou setor, transfira ou exclua primeiro seus registros.
+- Escolha uma foto já disponível em `photos`. Para adicionar outra imagem,
+  copie-a para essa pasta e recarregue o editor antes de iniciar alterações.
+- **Aplicar alteração** mantém a edição pendente. **Salvar na planilha** grava
+  o conjunto de alterações e regenera as páginas locais. Feche o Excel antes.
+- O primeiro salvamento cria as abas `EditorSetores` e `EditorUnidades` e as
+  colunas `Foto` e `ID` em `TAES`. As fotos passam a ser escolhidas na planilha;
+  `photos.json` é usado somente para importar as associações antigas.
+- Cada gravação cria uma cópia da planilha em `.editor-backups`. Para restaurar,
+  encerre o editor, copie o backup desejado sobre `Corpo Administrativo.xlsx`
+  e execute `python -X utf8 build.py`.
+- Alterações externas na planilha impedem sobrescrever uma versão antiga:
+  recarregue o editor antes de continuar. Aniversários são gravados como dia/mês.
+
+Para publicar as alterações locais, revise `git status`, faça commit da planilha,
+das páginas e de eventuais fotos novas, e envie para `main`. O editor não executa
+commit ou push automaticamente.
 
 1. Em **Settings → Pages → Build and deployment → Source**, selecione
    **GitHub Actions**.

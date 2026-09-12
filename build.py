@@ -8,6 +8,7 @@ from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
+import workbook_store
 
 ROOT = Path(__file__).parent
 NS = {'s': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
@@ -120,6 +121,7 @@ def card(person, photos, prefix):
 
 
 def shell(title, body, prefix='./', active=None, color='#1943c9', pale='#edf2ff'):
+    editor_link = '<p><a href="http://127.0.0.1:8002/editor" target="_blank" rel="noopener noreferrer">Editar Página</a></p>' if active is None else ''
     nav = '<a href="' + prefix + 'index.html"' + (' aria-current="page"' if active is None else '') + '>Início</a>'
     for slug, name, short, _, _ in SECTORS:
         nav += '<a href="' + prefix + slug + '/index.html"' + (' aria-current="page"' if active == slug else '') + '>' + esc(short) + '</a>'
@@ -132,17 +134,22 @@ def shell(title, body, prefix='./', active=None, color='#1943c9', pale='#edf2ff'
 <header class="top"><a class="brand" href="{prefix}index.html"><span class="brandmark">U</span><span>UFERSA<span class="brand-sub">CAMPUS ANGICOS</span></span></a>
 <span class="directory-label">Corpo administrativo</span><nav aria-label="Navegação principal">{nav}</nav></header>
 <main id="conteudo">{body}</main><footer><div><strong>Corpo Administrativo · UFERSA Angicos</strong><p>Servidores e unidades do campus.</p></div>
-<div class="footnote">Informações do cadastro administrativo local.<br>Campos sem informação aparecem como indisponíveis.</div></footer></body></html>'''
+<div class="footnote">Informações do cadastro administrativo local.<br>Campos sem informação aparecem como indisponíveis.{editor_link}</div></footer></body></html>'''
 
 
-def build():
-    people = read_people()
-    photos = json.loads((ROOT / 'photos.json').read_text(encoding='utf-8'))
+def build(data=None, output=None):
+    global SECTORS
+    data = data or workbook_store.load(ROOT / 'Corpo Administrativo.xlsx', SECTORS, ROOT / 'photos.json')
+    people = data['people']
+    SECTORS = [tuple(s[k] for k in ('slug', 'name', 'short', 'color', 'pale')) for s in data['sectors']]
+    output = Path(output) if output else ROOT
+    output.mkdir(parents=True, exist_ok=True)
+    photos = {p['Siape']: p['Foto'] for p in people}
     tiles = []
     counts = Counter(p['Setor'] for p in people)
     for index, (slug, name, short, color, pale) in enumerate(SECTORS, 1):
         members = [p for p in people if p['Setor'] == name]
-        units = list(dict.fromkeys(p['Unidade'] or 'Unidade indisponível' for p in members))
+        units = [u['name'] for u in data['units'] if u['sector'] == name]
         units.sort(key=lambda u: (0 if u in {'Diretoria', 'Coordenadoria'} else 1, u.casefold()))
         tiles.append(f'''<a class="dept-tile" style="--accent:{color};--pale:{pale}" href="./{slug}/index.html">
         <div class="tile-top"><span>SETOR {index:02}</span><span class="tile-arrow" aria-hidden="true">↗</span></div>
@@ -152,21 +159,21 @@ def build():
         sections = []
         for i, unit in enumerate(units, 1):
             group = sorted([p for p in members if (p['Unidade'] or 'Unidade indisponível') == unit], key=lambda p: p['Nome'].casefold())
-            sections.append(f'<section class="unit-section" aria-labelledby="unidade-{i}"><div class="section-heading"><h2 id="unidade-{i}">{esc(unit)}</h2><span>{len(group)} {"servidor" if len(group) == 1 else "servidores"}</span></div><div class="faculty-grid">' + ''.join(card(p, photos, '../') for p in group) + '</div></section>')
+            sections.append(f'<section class="unit-section" aria-labelledby="unidade-{i}"><div class="section-heading"><h2 id="unidade-{i}">{esc(unit)}</h2><span>{len(group)} {"servidor" if len(group) == 1 else "servidores"}</span></div><div class="faculty-grid">' + ''.join(card(p, {p['Siape']: p['Foto']}, '../') for p in group) + '</div></section>')
         body = f'''<div class="department-heading"><a class="back" href="../index.html">← Todos os setores</a>
         <div class="dept-title"><div><p class="eyebrow">CORPO ADMINISTRATIVO / CAMPUS ANGICOS</p><h1>{esc(name)}</h1>
         <p class="department-name">Conheça a equipe e suas unidades.</p></div><div class="dept-count"><strong>{len(members)}</strong><span>servidores</span></div></div></div>
         <nav class="unit-nav" aria-label="Unidades deste setor">{jumps}</nav>''' + ''.join(sections)
-        folder = ROOT / slug
+        folder = output / slug
         folder.mkdir(exist_ok=True)
         (folder / 'index.html').write_text(shell(name, body, '../', slug, color, pale), encoding='utf-8')
     home = f'''<section class="intro"><div><p class="eyebrow">UNIVERSIDADE FEDERAL RURAL DO SEMI-ÁRIDO</p><h1>Conheça o<br><em>corpo administrativo.</em></h1>
     <p class="intro-copy">As pessoas que fazem parte do Campus Angicos.<br>Encontre equipes, unidades e contatos.</p></div>
-    <div class="intro-numbers"><div><strong>{len(people)}</strong><span>servidores</span></div><div><strong>05</strong><span>setores</span></div></div></section>
+    <div class="intro-numbers"><div><strong>{len(people)}</strong><span>servidores</span></div><div><strong>{len(SECTORS):02}</strong><span>setores</span></div></div></section>
     <section aria-labelledby="setores"><div class="section-heading"><h2 id="setores">Explore por setor</h2><span>Equipes · Unidades · Contatos</span></div>
     <div class="department-grid">{''.join(tiles)}</div></section>
     <aside class="information"><span class="info-icon" aria-hidden="true">i</span><p>Selecione um setor para consultar seus servidores, organizados por unidade. Cada cartão reúne cargo, matrícula, aniversário e contatos disponíveis.</p></aside>'''
-    (ROOT / 'index.html').write_text(shell('Conheça nosso corpo administrativo', home), encoding='utf-8')
+    (output / 'index.html').write_text(shell('Conheça nosso corpo administrativo', home), encoding='utf-8')
     missing = [p['Nome'] for p in people if not photos.get(p['Siape'])]
     print(json.dumps({'servidores': len(people), 'setores': counts, 'sem_foto_associada': missing}, ensure_ascii=False, indent=2))
 
