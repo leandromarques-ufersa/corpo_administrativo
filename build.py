@@ -141,6 +141,7 @@ def shell(title, body, prefix='./', active=None, color='#1943c9', pale='#edf2ff'
 def build(data=None, output=None):
     global SECTORS
     data = data or workbook_store.load(ROOT / 'Corpo Administrativo.xlsx', DEFAULT_SECTORS, ROOT / 'photos.json')
+    workbook_store.validate(data, ROOT)
     people = data['people']
     SECTORS = [tuple(s[k] for k in ('slug', 'name', 'short', 'color', 'pale')) for s in data['sectors']]
     output = Path(output) if output else ROOT

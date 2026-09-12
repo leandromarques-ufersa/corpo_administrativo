@@ -4,6 +4,7 @@ import io
 import json
 import re
 import uuid
+import unicodedata
 import zipfile
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -14,6 +15,13 @@ R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
 P = 'http://schemas.openxmlformats.org/package/2006/relationships'
 C = 'http://schemas.openxmlformats.org/package/2006/content-types'
 FIELDS = ['Nome', 'Siape', 'Setor', 'Unidade', 'Cargo', 'Nascimento', 'Ramal', 'WhatsApp', 'Foto', 'ID']
+SECTOR_HEADERS = {'Endereço': 'slug', 'Nome': 'name', 'Nome no menu': 'short', 'Cor': 'color', 'Fundo': 'pale'}
+UNIT_HEADERS = {'ID': 'id', 'Setor': 'sector', 'Unidade': 'name'}
+
+
+def slugify(name):
+    ascii_name = unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode().lower()
+    return re.sub(r'[^a-z0-9]+', '-', ascii_name).strip('-')
 
 
 def serialize(tree, original=None):
@@ -77,9 +85,17 @@ def load(path, defaults, photo_path):
     with zipfile.ZipFile(path) as archive:
         files = {n: archive.read(n) for n in archive.namelist()}
     paths = sheet_paths(files)
-    people = [p for p in read_rows(files, paths['TAES']) if p.get('Nome', '').strip()]
+    if 'TAES' not in paths:
+        raise ValueError('A planilha precisa da aba TAES.')
+    people = read_rows(files, paths['TAES'])
+    for index, person in enumerate(people, 2):
+        missing = set(FIELDS[:8]) - person.keys()
+        if missing:
+            raise ValueError('Cabeçalhos obrigatórios ausentes em TAES: '+', '.join(sorted(missing)))
+        if not person.get('Nome', '').strip():
+            raise ValueError(f'TAES: registro {index} sem Nome. Preencha o nome ou exclua a linha inteira.')
     has_photo = bool(people and 'Foto' in people[0])
-    photos = json.loads(Path(photo_path).read_text(encoding='utf-8'))
+    photos = json.loads(Path(photo_path).read_text(encoding='utf-8')) if not has_photo and Path(photo_path).is_file() else {}
     prop = ET.fromstring(files['xl/workbook.xml']).find('{'+S+'}workbookPr')
     epoch = datetime(1904, 1, 1) if prop is not None and prop.get('date1904') in {'1', 'true'} else datetime(1899, 12, 30)
     for i, person in enumerate(people):
@@ -103,6 +119,18 @@ def load(path, defaults, photo_path):
                     continue
     sectors = read_rows(files, paths['EditorSetores']) if 'EditorSetores' in paths else [dict(zip(['slug', 'name', 'short', 'color', 'pale'], s)) for s in defaults]
     units = read_rows(files, paths['EditorUnidades']) if 'EditorUnidades' in paths else [{'id': str(uuid.uuid5(uuid.NAMESPACE_URL, p['Setor']+'|'+p['Unidade'])), 'sector': p['Setor'], 'name': p['Unidade']} for i, p in enumerate(people) if (p['Setor'], p['Unidade']) not in {(x['Setor'], x['Unidade']) for x in people[:i]}]
+    sectors = [{SECTOR_HEADERS.get(k, k): v.strip() for k, v in s.items()} for s in sectors]
+    units = [{UNIT_HEADERS.get(k, k): v.strip() for k, v in u.items()} for u in units]
+    for sector in sectors:
+        sector.setdefault('name', '')
+        sector['slug'] = sector.get('slug') or slugify(sector['name'])
+        sector['short'] = sector.get('short') or sector['name']
+        sector['color'] = sector.get('color') or '#1943c9'
+        sector['pale'] = sector.get('pale') or '#edf2ff'
+    for unit in units:
+        unit.setdefault('sector', '')
+        unit.setdefault('name', '')
+        unit['id'] = unit.get('id') or str(uuid.uuid5(uuid.NAMESPACE_URL, unit['sector']+'|'+unit['name']))
     return {'sectors': sectors, 'units': units, 'people': people, 'revision': revision(path)}
 
 
@@ -131,7 +159,7 @@ def validate(data, root):
     reserved = {'css', 'photos', 'referencia', 'admin', 'editor', '_site', 'api'}
     for s in sectors:
         if not s['name'] or not s['short'] or not re.fullmatch(r'[a-z][a-z0-9-]{0,79}', s['slug']) or s['slug'] in reserved:
-            raise ValueError('Nome ou endereço de setor inválido.')
+            raise ValueError('EditorSetores: nome ou endereço inválido para '+s['name']+'. Use letras minúsculas, números e hífens no endereço.')
         if any(not re.fullmatch(r'#[0-9a-fA-F]{6}', s[k]) for k in ('color', 'pale')):
             raise ValueError('Cor inválida.')
     names = {s['name'] for s in sectors}
@@ -139,22 +167,23 @@ def validate(data, root):
     unique([(u['sector'], u['name'].casefold()) for u in data['units']], 'Unidade')
     for u in data['units']:
         if not u['id'] or not u['name'] or u['sector'] not in names:
-            raise ValueError('Unidade sem nome ou setor válido.')
+            raise ValueError('EditorUnidades: unidade "'+u['name']+'" sem nome ou com setor inexistente: '+u['sector'])
     units = {(u['sector'], u['name']) for u in data['units']}
     unique([p['ID'] for p in data['people']], 'Identificador do servidor')
     unique([p['Siape'] for p in data['people'] if p['Siape']], 'SIAPE')
     for p in data['people']:
         if not p['ID'] or not p['Nome'] or (p['Setor'], p['Unidade']) not in units:
-            raise ValueError('Servidor sem nome ou unidade válida.')
+            raise ValueError('TAES: servidor "'+p['Nome']+'" sem nome ou com setor/unidade não cadastrado: '+p['Setor']+' / '+p['Unidade'])
         if p['Nascimento']:
             try:
                 datetime.strptime(p['Nascimento']+'/2000', '%d/%m/%Y')
             except ValueError:
-                raise ValueError('Aniversário deve ser dia/mês (ex.: 29/02).')
+                raise ValueError('TAES: aniversário de '+p['Nome']+' deve ser dia/mês (ex.: 29/02).')
         if p['Foto']:
             target = (root/'photos'/p['Foto']).resolve()
-            if target.parent != (root/'photos').resolve() or not target.is_file() or target.suffix.lower() not in {'.jpg', '.jpeg', '.png', '.webp', '.gif'}:
-                raise ValueError('Foto inválida.')
+            exact_names = {f.name for f in (root/'photos').iterdir() if f.is_file()}
+            if target.parent != (root/'photos').resolve() or not target.is_file() or p['Foto'] not in exact_names or target.suffix.lower() not in {'.jpg', '.jpeg', '.png', '.webp', '.gif'}:
+                raise ValueError('TAES: foto de '+p['Nome']+' não encontrada ou inválida: '+p['Foto']+'. Use o nome exato do arquivo em photos, incluindo maiúsculas e extensão.')
 
 
 def write(source, target, data):
@@ -168,6 +197,10 @@ def write(source, target, data):
     sheets = book.find('{'+S+'}sheets')
     tables = [('TAES', FIELDS, data['people']), ('EditorSetores', ['slug', 'name', 'short', 'color', 'pale'], data['sectors']), ('EditorUnidades', ['id', 'sector', 'name'], data['units'])]
     for name, headers, rows in tables:
+        mapping = SECTOR_HEADERS if name == 'EditorSetores' else UNIT_HEADERS if name == 'EditorUnidades' else None
+        if mapping:
+            headers = list(mapping)
+            rows = [{label: row[key] for label, key in mapping.items()} for row in rows]
         if name not in paths:
             number = max(int(s.get('sheetId')) for s in sheets)+1
             rid = 'rEditor'+uuid.uuid4().hex

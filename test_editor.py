@@ -39,7 +39,9 @@ class EditorTests(unittest.TestCase):
         for key in ('people', 'units', 'sectors'):
             self.assertEqual(self.data[key], actual[key])
         with zipfile.ZipFile(self.book) as original, zipfile.ZipFile(candidate) as saved:
-            changed = {'xl/workbook.xml', 'xl/_rels/workbook.xml.rels', '[Content_Types].xml', 'xl/worksheets/sheet1.xml'}
+            paths = store.sheet_paths({n: original.read(n) for n in original.namelist()})
+            changed = {'xl/workbook.xml', 'xl/_rels/workbook.xml.rels', '[Content_Types].xml'}
+            changed.update(paths[name] for name in ('TAES', 'EditorSetores', 'EditorUnidades') if name in paths)
             for name in original.namelist():
                 if name not in changed:
                     self.assertEqual(original.read(name), saved.read(name), name)
@@ -93,6 +95,38 @@ class EditorTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'Excel'):
                     editor.save(self.data)
         self.assertEqual(original, self.book.read_bytes())
+
+    def test_spreadsheet_new_records_without_technical_fields(self):
+        data = copy.deepcopy(self.data)
+        data['sectors'].append(dict(slug='', name='Apoio à Pesquisa', short='', color='', pale=''))
+        data['units'].append(dict(id='', sector='Apoio à Pesquisa', name='Nova equipe'))
+        person = dict.fromkeys(store.FIELDS, '')
+        person.update(Nome='Nova pessoa', Setor='Apoio à Pesquisa', Unidade='Nova equipe', Foto='Alan.png')
+        data['people'].append(person)
+        candidate = self.root/'manual.xlsx'
+        store.write(self.book, candidate, data)
+        actual = store.load(candidate, self.defaults, self.root/'arquivo-inexistente.json')
+        store.validate(actual, self.root)
+        self.assertEqual(actual['sectors'][-1]['slug'], 'apoio-a-pesquisa')
+        self.assertTrue(actual['units'][-1]['id'])
+        self.assertTrue(actual['people'][-1]['ID'])
+        with patch.object(build, 'ROOT', self.root):
+            build.build(data=actual, output=self.root/'publico')
+        page = (self.root/'publico/apoio-a-pesquisa/index.html').read_text(encoding='utf-8')
+        self.assertIn('../photos/Alan.png', page)
+        self.assertIn('Nova pessoa', page)
+
+    def test_photo_case_and_invalid_relations_block_generation(self):
+        data = copy.deepcopy(self.data)
+        data['people'][0]['Foto'] = 'alan.PNG'
+        with self.assertRaisesRegex(ValueError, 'foto de'):
+            store.validate(data, self.root)
+        data = copy.deepcopy(self.data)
+        data['people'][0]['Unidade'] = 'Unidade inexistente'
+        with patch.object(build, 'ROOT', self.root):
+            with self.assertRaisesRegex(ValueError, 'não cadastrado'):
+                build.build(data=data, output=self.root/'invalido')
+        self.assertFalse((self.root/'invalido/index.html').exists())
 
     def test_http_auth_csrf_and_private_files(self):
         salt = bytes.fromhex('01'*32)
