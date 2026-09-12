@@ -24,7 +24,7 @@ FAILURES = []
 
 
 def load():
-    return store.load(BOOK, build.SECTORS, ROOT/'photos.json')
+    return store.load(BOOK, build.DEFAULT_SECTORS, ROOT/'photos.json')
 
 
 def save(data):
@@ -40,6 +40,8 @@ def save(data):
         store.write(BOOK, candidate, data)
         store.load(candidate, build.SECTORS, ROOT/'photos.json')
         build.build(data=data, output=temp/'site')
+        if data['revision'] != store.revision(BOOK):
+            raise ValueError('A planilha mudou durante a gravação. Recarregue o editor.')
         backup = backup_dir/(time.strftime('%Y%m%d-%H%M%S')+'-'+secrets.token_hex(4)+'.xlsx')
         shutil.copy2(BOOK, backup)
         try:

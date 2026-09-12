@@ -1,5 +1,6 @@
 """Persistência OOXML do editor, usando apenas a biblioteca padrão do Python."""
 import hashlib
+import io
 import json
 import re
 import uuid
@@ -13,6 +14,32 @@ R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
 P = 'http://schemas.openxmlformats.org/package/2006/relationships'
 C = 'http://schemas.openxmlformats.org/package/2006/content-types'
 FIELDS = ['Nome', 'Siape', 'Setor', 'Unidade', 'Cargo', 'Nascimento', 'Ramal', 'WhatsApp', 'Foto', 'ID']
+
+
+def serialize(tree, original=None):
+    """Mantém prefixos usados por mc:Ignorable e mc:Choice Requires do Excel."""
+    namespaces = {}
+    if original:
+        for _, (prefix, uri) in ET.iterparse(io.BytesIO(original), events=['start-ns']):
+            namespaces[prefix] = uri
+            if not re.fullmatch(r'ns\d+', prefix):
+                ET.register_namespace(prefix, uri)
+    else:
+        ET.register_namespace('', S)
+    preview = ET.tostring(tree, encoding='unicode')
+    declared = set(re.findall(r'xmlns(?::([\w]+))?=', preview))
+    for prefix, uri in namespaces.items():
+        if prefix and prefix not in declared:
+            tree.set('xmlns:'+prefix, uri)
+    return ET.tostring(tree, encoding='utf-8', xml_declaration=True)
+
+
+def column_name(number):
+    result = ''
+    while number:
+        number, remainder = divmod(number-1, 26)
+        result = chr(65+remainder)+result
+    return result
 
 
 def revision(path):
@@ -43,14 +70,14 @@ def read_rows(files, path):
         result.append(values)
     if not result:
         return []
-    return [{name: row.get(col, '') for col, name in result[0].items()} for row in result[1:] if any(row.values())]
+    return [{name: row.get(col, '') for col, name in result[0].items() if name} for row in result[1:] if any(row.values())]
 
 
 def load(path, defaults, photo_path):
     with zipfile.ZipFile(path) as archive:
         files = {n: archive.read(n) for n in archive.namelist()}
     paths = sheet_paths(files)
-    people = read_rows(files, paths['TAES'])
+    people = [p for p in read_rows(files, paths['TAES']) if p.get('Nome', '').strip()]
     has_photo = bool(people and 'Foto' in people[0])
     photos = json.loads(Path(photo_path).read_text(encoding='utf-8'))
     prop = ET.fromstring(files['xl/workbook.xml']).find('{'+S+'}workbookPr')
@@ -153,7 +180,7 @@ def write(source, target, data):
         if name == 'TAES':
             original = read_rows(files, path)
             extras = [key for key in (original[0] if original else {}) if key not in headers]
-            headers = headers + extras
+            headers = list(original[0]) + [key for key in headers if key not in original[0]] if original else headers
             original_by_id = {p.get('ID') or str(uuid.uuid5(uuid.NAMESPACE_URL, str(i)+' '.join(p['Nome'].split())+' '.join(p['Siape'].split()))): p for i, p in enumerate(original)}
             rows = [{**{k: original_by_id.get(p['ID'], {}).get(k, '') for k in extras}, **p} for p in rows]
         sheet = ET.fromstring(files[path]) if path in files else ET.Element('{'+S+'}worksheet')
@@ -162,26 +189,29 @@ def write(source, target, data):
             content = ET.SubElement(sheet, '{'+S+'}sheetData')
         # Retain column widths, sheet settings and styles; replace the editable table.
         old_styles = {re.sub(r'\d', '', c.get('r')): c.get('s') for r in list(content)[:1] for c in r if c.get('s')}
+        body_styles = {re.sub(r'\d', '', c.get('r')): c.get('s') for r in list(content)[1:2] for c in r if c.get('s')}
         content.clear()
         for rownum, values in enumerate([dict(zip(headers, headers))]+rows, 1):
             row = ET.SubElement(content, '{'+S+'}row', {'r': str(rownum)})
             for colnum, key in enumerate(headers):
-                col = chr(65+colnum)
+                col = column_name(colnum+1)
                 attrs = {'r': col+str(rownum), 't': 'inlineStr'}
                 if rownum == 1 and col in old_styles:
                     attrs['s'] = old_styles[col]
+                elif rownum > 1 and col in body_styles:
+                    attrs['s'] = body_styles[col]
                 cell = ET.SubElement(row, '{'+S+'}c', attrs)
                 ET.SubElement(ET.SubElement(cell, '{'+S+'}is'), '{'+S+'}t').text = values.get(key, '')
         dimension = sheet.find('{'+S+'}dimension')
         if dimension is not None:
-            dimension.set('ref', 'A1:'+chr(64+len(headers))+str(len(rows)+1))
+            dimension.set('ref', 'A1:'+column_name(len(headers))+str(len(rows)+1))
         autofilter = sheet.find('{'+S+'}autoFilter')
         if autofilter is not None:
-            autofilter.set('ref', 'A1:'+chr(64+len(headers))+str(len(rows)+1))
-        files[path] = ET.tostring(sheet, encoding='utf-8', xml_declaration=True)
-    files['xl/workbook.xml'] = ET.tostring(book, encoding='utf-8', xml_declaration=True)
-    files['xl/_rels/workbook.xml.rels'] = ET.tostring(rels, encoding='utf-8', xml_declaration=True)
-    files['[Content_Types].xml'] = ET.tostring(types, encoding='utf-8', xml_declaration=True)
+            autofilter.set('ref', 'A1:'+column_name(len(headers))+str(len(rows)+1))
+        files[path] = serialize(sheet, files.get(path))
+    files['xl/workbook.xml'] = serialize(book, files['xl/workbook.xml'])
+    files['xl/_rels/workbook.xml.rels'] = serialize(rels, files['xl/_rels/workbook.xml.rels'])
+    files['[Content_Types].xml'] = serialize(types, files['[Content_Types].xml'])
     with zipfile.ZipFile(target, 'w', zipfile.ZIP_DEFLATED) as archive:
         for name, content in files.items():
             archive.writestr(name, content)

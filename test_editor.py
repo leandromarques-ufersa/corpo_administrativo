@@ -1,6 +1,8 @@
 import copy
 import http.client
 import json
+import io
+import re
 import shutil
 import tempfile
 import threading
@@ -41,6 +43,13 @@ class EditorTests(unittest.TestCase):
             for name in original.namelist():
                 if name not in changed:
                     self.assertEqual(original.read(name), saved.read(name), name)
+            for name in ('xl/workbook.xml', 'xl/worksheets/sheet1.xml'):
+                xml = saved.read(name)
+                namespaces = {prefix for _, (prefix, uri) in store.ET.iterparse(io.BytesIO(xml), events=['start-ns'])}
+                for element in store.ET.fromstring(xml).iter():
+                    for key, value in element.attrib.items():
+                        if key.endswith('}Ignorable') or key == 'Requires':
+                            self.assertTrue(set(value.split()) <= namespaces, (name, value, namespaces))
 
     def test_create_move_edit_delete_and_empty_sector(self):
         self.data['sectors'].append(dict(slug='novo-setor', name='Novo setor', short='Novo', color='#123456', pale='#eefaff'))
