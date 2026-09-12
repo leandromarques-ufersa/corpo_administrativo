@@ -96,6 +96,25 @@ class EditorTests(unittest.TestCase):
                     editor.save(self.data)
         self.assertEqual(original, self.book.read_bytes())
 
+    def test_birthday_privacy_and_formation(self):
+        person = self.data['people'][0]
+        person['Nascimento'] = '29-02'
+        person['Formação'] = 'Mestrado em Educação'
+        store.validate(self.data, self.root)
+        candidate = self.root/'birthday.xlsx'
+        store.write(self.book, candidate, self.data)
+        actual = store.load(candidate, self.defaults, self.root/'photos.json')
+        self.assertEqual(actual['people'][0]['Nascimento'], '29-02')
+        page = build.card(actual['people'][0], {}, '../')
+        self.assertIn('Mestrado em Educação', page)
+        self.assertIn('29-02', page)
+        with zipfile.ZipFile(candidate) as archive:
+            files = {n: archive.read(n) for n in archive.namelist()}
+        rows = store.read_rows(files, store.sheet_paths(files)['TAES'])
+        for row in rows:
+            if row['Nascimento']:
+                self.assertRegex(row['Nascimento'], r'^\d{2}-\d{2}$')
+
     def test_spreadsheet_new_records_without_technical_fields(self):
         data = copy.deepcopy(self.data)
         data['sectors'].append(dict(slug='', name='Apoio à Pesquisa', short='', color='', pale=''))

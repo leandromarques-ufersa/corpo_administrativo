@@ -68,9 +68,9 @@ nos HTML serão substituídas pela próxima geração.
 - Cada setor cadastrado tem uma página própria, com seções para suas unidades.
 - Os 42 registros da planilha foram preservados. Pessoas presentes apenas no
   protótipo antigo não foram incluídas.
-- Os cartões exibem nome, matrícula SIAPE, cargo, aniversário (dia/mês), ramal e
+- Os cartões exibem nome, matrícula SIAPE, cargo, formação, aniversário (dia-mês), ramal e
   WhatsApp. Campos vazios ou `-` aparecem como `Indisponível`.
-- Datas numéricas do Excel são convertidas em dia/mês, sem exibir ano de nascimento.
+- Na coluna `Nascimento`, armazene apenas texto no formato DD-MM (ex.: 29-02), sem ano. Formate as células como Texto antes de preencher para evitar conversão em data completa.
 - Cargos, nomes e unidades seguem a planilha, inclusive a grafia `Seguraça do Trabalho`.
 - Os números completos de WhatsApp geram links quando tiverem DDD. Números
   incompletos são apresentados como texto, sem inventar um DDD.

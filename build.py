@@ -74,12 +74,14 @@ def read_people():
         for person in rows:
             birthday = person['Nascimento']
             if re.fullmatch(r'\d+(?:\.\d+)?', birthday):
-                person['Nascimento'] = (epoch + timedelta(days=float(birthday))).strftime('%d/%m')
+                person['Nascimento'] = (epoch + timedelta(days=float(birthday))).strftime('%d-%m')
             elif birthday:
                 parsed = None
-                for fmt in ('%d/%m/%Y', '%Y-%m-%d', '%d/%m'):
+                for fmt in ('%d/%m/%Y', '%Y-%m-%d', '%d-%m-%Y', '%d/%m', '%d-%m'):
                     try:
-                        parsed = datetime.strptime(birthday, fmt).strftime('%d/%m')
+                        value = birthday + '/2000' if fmt in ('%d/%m', '%d-%m') else birthday
+                        parse_fmt = fmt + '/%Y' if fmt in ('%d/%m', '%d-%m') else fmt
+                        parsed = datetime.strptime(value, parse_fmt).strftime('%d-%m')
                         break
                     except ValueError:
                         pass
@@ -117,6 +119,7 @@ def card(person, photos, prefix):
       <div class="card-top"><div class="portrait">{portrait}</div><div><span class="degree">Servidor</span><h3>{esc(name)}</h3>
       <p class="status">Matrícula SIAPE: {esc(person['Siape'] or 'Indisponível')}</p></div></div>
       <div class="formation"><h4>Cargo</h4><p>{esc(person['Cargo'] or 'Indisponível')}</p></div>
+      <div class="formation"><h4>Formação</h4><p>{esc(person.get('Formação') or 'Indisponível')}</p></div>
       <dl class="contact"><div class="contact-pair">{field('Aniversário', person['Nascimento'])}{field('Ramal', person['Ramal'])}</div>
       <div class="whatsapp"><dt>WhatsApp</dt><dd>{whatsapp}</dd></div></dl></article>'''
 

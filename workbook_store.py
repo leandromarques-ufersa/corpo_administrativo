@@ -14,7 +14,7 @@ S = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'
 R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
 P = 'http://schemas.openxmlformats.org/package/2006/relationships'
 C = 'http://schemas.openxmlformats.org/package/2006/content-types'
-FIELDS = ['Nome', 'Siape', 'Setor', 'Unidade', 'Cargo', 'Nascimento', 'Ramal', 'WhatsApp', 'Foto', 'ID']
+FIELDS = ['Nome', 'Siape', 'Setor', 'Unidade', 'Cargo', 'Nascimento', 'Ramal', 'WhatsApp', 'Foto', 'ID', 'Formação']
 SECTOR_HEADERS = {'Endereço': 'slug', 'Nome': 'name', 'Nome no menu': 'short', 'Cor': 'color', 'Fundo': 'pale'}
 UNIT_HEADERS = {'ID': 'id', 'Setor': 'sector', 'Unidade': 'name'}
 
@@ -109,11 +109,13 @@ def load(path, defaults, photo_path):
             person['Foto'] = photos.get(person['Siape']) or ''
         birthday = person['Nascimento']
         if re.fullmatch(r'\d+(?:\.\d+)?', birthday):
-            person['Nascimento'] = (epoch + timedelta(days=float(birthday))).strftime('%d/%m')
+            person['Nascimento'] = (epoch + timedelta(days=float(birthday))).strftime('%d-%m')
         elif birthday:
-            for fmt in ('%d/%m/%Y', '%Y-%m-%d', '%d/%m'):
+            for fmt in ('%d/%m/%Y', '%Y-%m-%d', '%d-%m-%Y', '%d/%m', '%d-%m'):
                 try:
-                    person['Nascimento'] = datetime.strptime(birthday, fmt).strftime('%d/%m')
+                    value = birthday + '/2000' if fmt in ('%d/%m', '%d-%m') else birthday
+                    parse_fmt = fmt + '/%Y' if fmt in ('%d/%m', '%d-%m') else fmt
+                    person['Nascimento'] = datetime.strptime(value, parse_fmt).strftime('%d-%m')
                     break
                 except ValueError:
                     continue
@@ -176,9 +178,9 @@ def validate(data, root):
             raise ValueError('TAES: servidor "'+p['Nome']+'" sem nome ou com setor/unidade não cadastrado: '+p['Setor']+' / '+p['Unidade'])
         if p['Nascimento']:
             try:
-                datetime.strptime(p['Nascimento']+'/2000', '%d/%m/%Y')
+                datetime.strptime(p['Nascimento'].replace('-', '/')+'/2000', '%d/%m/%Y')
             except ValueError:
-                raise ValueError('TAES: aniversário de '+p['Nome']+' deve ser dia/mês (ex.: 29/02).')
+                raise ValueError('TAES: aniversário de '+p['Nome']+' deve ser dia-mês (ex.: 29-02).')
         if p['Foto']:
             target = (root/'photos'/p['Foto']).resolve()
             exact_names = {f.name for f in (root/'photos').iterdir() if f.is_file()}
@@ -234,7 +236,10 @@ def write(source, target, data):
                 elif rownum > 1 and col in body_styles:
                     attrs['s'] = body_styles[col]
                 cell = ET.SubElement(row, '{'+S+'}c', attrs)
-                ET.SubElement(ET.SubElement(cell, '{'+S+'}is'), '{'+S+'}t').text = values.get(key, '')
+                value = values.get(key, '')
+                if name == 'TAES' and key == 'Nascimento' and rownum > 1:
+                    value = value.replace('/', '-')
+                ET.SubElement(ET.SubElement(cell, '{'+S+'}is'), '{'+S+'}t').text = value
         dimension = sheet.find('{'+S+'}dimension')
         if dimension is not None:
             dimension.set('ref', 'A1:'+column_name(len(headers))+str(len(rows)+1))

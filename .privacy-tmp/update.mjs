@@ -1,0 +1,13 @@
+import fs from 'node:fs/promises';
+import { FileBlob, SpreadsheetFile } from '@oai/artifact-tool';
+const wb = await SpreadsheetFile.importXlsx(await FileBlob.load('Corpo Administrativo.xlsx'));
+const sheet = wb.worksheets.getItem('TAES');
+await fs.writeFile('.privacy-tmp/before.png', new Uint8Array(await (await wb.render({sheetName:'TAES',range:'H1:I5',scale:1})).arrayBuffer()));
+const values = JSON.parse(await fs.readFile('.privacy-tmp/birthdays.json','utf8'));
+const range = sheet.getRange(`H2:H${values.length+1}`);
+range.setNumberFormat('@');
+range.values = values;
+wb.recalculate();
+await fs.writeFile('.privacy-tmp/after.png', new Uint8Array(await (await wb.render({sheetName:'TAES',range:'H1:I5',scale:1})).arrayBuffer()));
+await (await SpreadsheetFile.exportXlsx(wb)).save('.privacy-tmp/converted.xlsx');
+console.log('Aniversários convertidos: '+values.length);
