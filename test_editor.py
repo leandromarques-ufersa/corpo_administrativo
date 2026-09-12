@@ -106,8 +106,11 @@ class EditorTests(unittest.TestCase):
         actual = store.load(candidate, self.defaults, self.root/'photos.json')
         self.assertEqual(actual['people'][0]['Nascimento'], '29-02')
         page = build.card(actual['people'][0], {}, '../')
-        self.assertIn('Mestrado em Educação', page)
-        self.assertIn('29-02', page)
+        self.assertIn('<span class="degree">Mestrado em educação</span>', page)
+        self.assertNotIn('<h4>Formação</h4>', page)
+        self.assertIn('29/02', page)
+        self.assertIn('<dt>Telefone</dt>', page)
+        self.assertNotIn('https://wa.me/', page)
         with zipfile.ZipFile(candidate) as archive:
             files = {n: archive.read(n) for n in archive.namelist()}
         rows = store.read_rows(files, store.sheet_paths(files)['TAES'])

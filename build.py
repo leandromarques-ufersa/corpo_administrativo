@@ -114,14 +114,13 @@ def card(person, photos, prefix):
         digits = '55' + digits
     whatsapp = '<span class="unavailable">Indisponível</span>'
     if number:
-        whatsapp = '<a href="https://wa.me/' + digits + '" target="_blank" rel="noopener noreferrer">' + esc(number) + ' ↗</a>' if len(digits) in {12, 13} and digits.startswith('55') else esc(number)
+        whatsapp = '<a href="tel:+' + digits + '">' + esc(number) + '</a>' if len(digits) in {12, 13} and digits.startswith('55') else esc(number)
     return f'''<article class="card" data-siape="{esc(person['Siape'])}">
-      <div class="card-top"><div class="portrait">{portrait}</div><div><span class="degree">Servidor</span><h3>{esc(name)}</h3>
+      <div class="card-top"><div class="portrait">{portrait}</div><div><span class="degree">{esc((person.get('Formação') or 'Indisponível').strip().capitalize())}</span><h3>{esc(name)}</h3>
       <p class="status">Matrícula SIAPE: {esc(person['Siape'] or 'Indisponível')}</p></div></div>
       <div class="formation"><h4>Cargo</h4><p>{esc(person['Cargo'] or 'Indisponível')}</p></div>
-      <div class="formation"><h4>Formação</h4><p>{esc(person.get('Formação') or 'Indisponível')}</p></div>
-      <dl class="contact"><div class="contact-pair">{field('Aniversário', person['Nascimento'])}{field('Ramal', person['Ramal'])}</div>
-      <div class="whatsapp"><dt>WhatsApp</dt><dd>{whatsapp}</dd></div></dl></article>'''
+      <dl class="contact"><div class="contact-pair">{field('Aniversário', person['Nascimento'].replace('-', '/'))}{field('Ramal', person['Ramal'])}</div>
+      <div class="whatsapp"><dt>Telefone</dt><dd>{whatsapp}</dd></div></dl></article>'''
 
 
 def shell(title, body, prefix='./', active=None, color='#1943c9', pale='#edf2ff'):
