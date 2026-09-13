@@ -4,3 +4,4 @@
 .dept-tile{position:relative}.sector-link{color:inherit;text-decoration:none}.sector-link::after{content:"";position:absolute;inset:0}.official-link{position:relative;z-index:1;align-self:flex-start;color:var(--accent);font-size:12px;font-weight:600;letter-spacing:.06em;text-decoration:none;margin:0 0 18px}.official-link:hover,.official-link:focus-visible{text-decoration:underline;text-underline-offset:4px}.dept-tile:focus-within{border-color:var(--accent)}
 
 .contact-details{margin-top:20px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.contact-details>div{min-width:0}.contact-details dd{overflow-wrap:anywhere}.contact-details a{color:var(--accent);font-weight:600}a.directory-label:hover,a.directory-label:focus-visible{text-decoration:underline;text-underline-offset:4px}
+.contact-email dd{font-size:12px}.contact-details .contact-email a{font-weight:400;text-transform:lowercase}

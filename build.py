@@ -115,14 +115,14 @@ def card(person, photos, prefix):
     whatsapp = '<span class="unavailable">Indisponível</span>'
     if number:
         whatsapp = '<a href="tel:+' + digits + '">' + esc(number) + '</a>' if len(digits) in {12, 13} and digits.startswith('55') else esc(number)
-    email = person.get('Email', '')
+    email = person.get('Email', '').lower()
     email_link = '<a href="mailto:' + esc(quote(email, safe='@.+-_')) + '">' + esc(email) + '</a>' if email else '<span class="unavailable">Indisponível</span>'
     return f'''<article class="card" data-siape="{esc(person['Siape'])}">
       <div class="card-top"><div class="portrait">{portrait}</div><div><span class="degree">{esc((person.get('Formação') or 'Indisponível').strip().capitalize())}</span><h3>{esc(name)}</h3>
       <p class="status">Matrícula SIAPE: {esc(person['Siape'] or 'Indisponível')}</p></div></div>
       <div class="formation"><h4>Cargo</h4><p>{esc(person['Cargo'] or 'Indisponível')}</p></div>
       <dl class="contact"><div class="contact-pair">{field('Aniversário', person['Nascimento'].replace('-', '/'))}{field('Ramal', person['Ramal'])}</div>
-      <div class="contact-pair contact-details"><div><dt>Telefone</dt><dd>{whatsapp}</dd></div><div><dt>E-mail</dt><dd>{email_link}</dd></div></div></dl></article>'''
+      <div class="contact-pair contact-details"><div><dt>Telefone</dt><dd>{whatsapp}</dd></div><div class="contact-email"><dt>E-mail</dt><dd>{email_link}</dd></div></div></dl></article>'''
 
 
 def shell(title, body, prefix='./', active=None, color='#1943c9', pale='#edf2ff'):
