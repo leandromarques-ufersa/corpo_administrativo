@@ -8,5 +8,5 @@ build.build(output=output)
 (output/'css').mkdir(exist_ok=True)
 for source in Path('css').glob('*.css'):
     shutil.copy2(source, output/'css'/source.name)
-shutil.copy2('favicon.svg', output/'favicon.svg')
+shutil.copytree('assets', output/'assets', dirs_exist_ok=True)
 shutil.copytree('photos', output/'photos', dirs_exist_ok=True)

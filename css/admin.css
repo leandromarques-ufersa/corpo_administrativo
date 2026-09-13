@@ -5,3 +5,4 @@
 
 .contact-details{margin-top:20px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.contact-details>div{min-width:0}.contact-details dd{overflow-wrap:anywhere}.contact-details a{color:var(--accent);font-weight:600}a.directory-label:hover,a.directory-label:focus-visible{text-decoration:underline;text-underline-offset:4px}
 .contact-email dd{font-size:12px}.contact-details .contact-email a{font-weight:400;text-transform:lowercase}
+.brand-logo{display:block;width:48px;height:48px;object-fit:contain;flex-shrink:0}

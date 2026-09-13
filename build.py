@@ -133,10 +133,10 @@ def shell(title, body, prefix='./', active=None, color='#1943c9', pale='#edf2ff'
     return f'''<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="Conheça os servidores, setores e unidades do corpo administrativo da UFERSA, Campus Angicos.">
-<title>{esc(title)} | Corpo Administrativo UFERSA Angicos</title><link rel="icon" href="{prefix}favicon.svg" type="image/svg+xml">
+<title>{esc(title)} | Corpo Administrativo UFERSA Angicos</title><link rel="icon" href="{prefix}assets/ufersa_logo.png" type="image/png">
 <link rel="stylesheet" href="{prefix}css/style.css"><link rel="stylesheet" href="{prefix}css/admin.css"></head>
 <body style="--accent:{color};--pale:{pale}"><a class="skip" href="#conteudo">Pular para o conteúdo</a>
-<header class="top"><a class="brand" href="{prefix}index.html"><span class="brandmark">U</span><span>UFERSA<span class="brand-sub">CAMPUS ANGICOS</span></span></a>
+<header class="top"><a class="brand" href="{prefix}index.html"><img class="brand-logo" src="{prefix}assets/ufersa_logo.png" alt="" width="48" height="48"><span>UFERSA<span class="brand-sub">CAMPUS ANGICOS</span></span></a>
 {directory_label}<nav aria-label="Navegação principal">{nav}</nav></header>
 <main id="conteudo">{body}</main><footer><div><strong>Corpo Administrativo · UFERSA Angicos</strong><p>Servidores e unidades do campus.</p></div>
 <div class="footnote">Informações do cadastro administrativo local.<br>Campos sem informação aparecem como indisponíveis.</div></footer></body></html>'''
