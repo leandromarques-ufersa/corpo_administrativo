@@ -126,7 +126,7 @@ def card(person, photos, prefix):
 
 
 def shell(title, body, prefix='./', active=None, color='#1943c9', pale='#edf2ff'):
-    directory_label = '<a class="directory-label" href="https://leandromarques-ufersa.github.io/corpo_administrativo/index.html" target="_blank" rel="noopener noreferrer">visualizar em tela cheia</a>' if active is None else '<span class="directory-label">Corpo administrativo</span>'
+    directory_label = '<a class="directory-label" href="https://leandromarques-ufersa.github.io/corpo_administrativo/index.html" target="_blank" rel="noopener noreferrer">visualizar em tela cheia</a>'
     nav = '<a href="' + prefix + 'index.html"' + (' aria-current="page"' if active is None else '') + '>Início</a>'
     for slug, name, short, _, _ in SECTORS:
         nav += '<a href="' + prefix + slug + '/index.html"' + (' aria-current="page"' if active == slug else '') + '>' + esc(short) + '</a>'
