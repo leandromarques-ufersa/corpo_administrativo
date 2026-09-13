@@ -15,7 +15,7 @@ S = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'
 R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
 P = 'http://schemas.openxmlformats.org/package/2006/relationships'
 C = 'http://schemas.openxmlformats.org/package/2006/content-types'
-FIELDS = ['Nome', 'Siape', 'Setor', 'Unidade', 'Cargo', 'Nascimento', 'Ramal', 'WhatsApp', 'Foto', 'ID', 'Formação']
+FIELDS = ['Nome', 'Siape', 'Setor', 'Unidade', 'Cargo', 'Nascimento', 'Ramal', 'WhatsApp', 'Foto', 'ID', 'Formação', 'Email']
 SECTOR_HEADERS = {'Endereço': 'slug', 'Nome': 'name', 'Nome no menu': 'short', 'Cor': 'color', 'Fundo': 'pale', 'Página': 'page'}
 UNIT_HEADERS = {'ID': 'id', 'Setor': 'sector', 'Unidade': 'name'}
 

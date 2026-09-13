@@ -43,6 +43,7 @@ function open(index=null){
     if(!state.units.length){message('Crie um setor e uma unidade antes de cadastrar servidores.',true);return;}
     field('Nome','Nome',item.Nome);field('Siape','Matrícula SIAPE',item.Siape,null,'text',false);field('Cargo','Cargo',item.Cargo,null,'text',false);
     field('Formação','Formação',item['Formação']||'',null,'text',false);
+    field('Email','E-mail',item.Email||'',null,'email',false);
     const sector=field('Setor','Setor',item.Setor||state.units[0].sector,state.sectors.map(s=>s.name));
     const unit=field('Unidade','Unidade','',[]);function updateUnits(){unit.replaceChildren();state.units.filter(u=>u.sector===sector.value).forEach(u=>{const option=document.createElement('option');option.value=u.name;option.textContent=u.name;unit.append(option);});}sector.onchange=updateUnits;updateUnits();if(item.Unidade)unit.value=item.Unidade;
     const birthday=field('Nascimento','Aniversário (dia-mês)',item.Nascimento,null,'text',false);birthday.placeholder='25-12';birthday.pattern='[0-9]{2}-[0-9]{2}';field('Ramal','Ramal',item.Ramal,null,'text',false);field('WhatsApp','WhatsApp com DDD',item.WhatsApp,null,'text',false);field('Foto','Foto da pasta photos',item.Foto||'',[{value:'',label:'Sem foto'},...state.photos], 'text',false);

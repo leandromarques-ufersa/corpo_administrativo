@@ -100,6 +100,7 @@ class EditorTests(unittest.TestCase):
         person = self.data['people'][0]
         person['Nascimento'] = '29-02'
         person['Formação'] = 'Mestrado em Educação'
+        person['Email'] = 'servidor@ufersa.edu.br'
         store.validate(self.data, self.root)
         candidate = self.root/'birthday.xlsx'
         store.write(self.book, candidate, self.data)
@@ -110,6 +111,8 @@ class EditorTests(unittest.TestCase):
         self.assertNotIn('<h4>Formação</h4>', page)
         self.assertIn('29/02', page)
         self.assertIn('<dt>Telefone</dt>', page)
+        self.assertEqual(actual['people'][0]['Email'], person['Email'])
+        self.assertIn('<dt>E-mail</dt><dd><a href="mailto:servidor@ufersa.edu.br">', page)
         self.assertNotIn('https://wa.me/', page)
         with zipfile.ZipFile(candidate) as archive:
             files = {n: archive.read(n) for n in archive.namelist()}

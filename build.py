@@ -115,16 +115,18 @@ def card(person, photos, prefix):
     whatsapp = '<span class="unavailable">Indisponível</span>'
     if number:
         whatsapp = '<a href="tel:+' + digits + '">' + esc(number) + '</a>' if len(digits) in {12, 13} and digits.startswith('55') else esc(number)
+    email = person.get('Email', '')
+    email_link = '<a href="mailto:' + esc(quote(email, safe='@.+-_')) + '">' + esc(email) + '</a>' if email else '<span class="unavailable">Indisponível</span>'
     return f'''<article class="card" data-siape="{esc(person['Siape'])}">
       <div class="card-top"><div class="portrait">{portrait}</div><div><span class="degree">{esc((person.get('Formação') or 'Indisponível').strip().capitalize())}</span><h3>{esc(name)}</h3>
       <p class="status">Matrícula SIAPE: {esc(person['Siape'] or 'Indisponível')}</p></div></div>
       <div class="formation"><h4>Cargo</h4><p>{esc(person['Cargo'] or 'Indisponível')}</p></div>
       <dl class="contact"><div class="contact-pair">{field('Aniversário', person['Nascimento'].replace('-', '/'))}{field('Ramal', person['Ramal'])}</div>
-      <div class="whatsapp"><dt>Telefone</dt><dd>{whatsapp}</dd></div></dl></article>'''
+      <div class="contact-pair contact-details"><div><dt>Telefone</dt><dd>{whatsapp}</dd></div><div><dt>E-mail</dt><dd>{email_link}</dd></div></div></dl></article>'''
 
 
 def shell(title, body, prefix='./', active=None, color='#1943c9', pale='#edf2ff'):
-    editor_link = '<p><a href="http://127.0.0.1:8002/editor" target="_blank" rel="noopener noreferrer">Editar Página</a></p>' if active is None else ''
+    directory_label = '<a class="directory-label" href="https://leandromarques-ufersa.github.io/corpo_administrativo/index.html" target="_blank" rel="noopener noreferrer">visualizar em tela cheia</a>' if active is None else '<span class="directory-label">Corpo administrativo</span>'
     nav = '<a href="' + prefix + 'index.html"' + (' aria-current="page"' if active is None else '') + '>Início</a>'
     for slug, name, short, _, _ in SECTORS:
         nav += '<a href="' + prefix + slug + '/index.html"' + (' aria-current="page"' if active == slug else '') + '>' + esc(short) + '</a>'
@@ -135,9 +137,9 @@ def shell(title, body, prefix='./', active=None, color='#1943c9', pale='#edf2ff'
 <link rel="stylesheet" href="{prefix}css/style.css"><link rel="stylesheet" href="{prefix}css/admin.css"></head>
 <body style="--accent:{color};--pale:{pale}"><a class="skip" href="#conteudo">Pular para o conteúdo</a>
 <header class="top"><a class="brand" href="{prefix}index.html"><span class="brandmark">U</span><span>UFERSA<span class="brand-sub">CAMPUS ANGICOS</span></span></a>
-<span class="directory-label">Corpo administrativo</span><nav aria-label="Navegação principal">{nav}</nav></header>
+{directory_label}<nav aria-label="Navegação principal">{nav}</nav></header>
 <main id="conteudo">{body}</main><footer><div><strong>Corpo Administrativo · UFERSA Angicos</strong><p>Servidores e unidades do campus.</p></div>
-<div class="footnote">Informações do cadastro administrativo local.<br>Campos sem informação aparecem como indisponíveis.{editor_link}</div></footer></body></html>'''
+<div class="footnote">Informações do cadastro administrativo local.<br>Campos sem informação aparecem como indisponíveis.</div></footer></body></html>'''
 
 
 def build(data=None, output=None):
